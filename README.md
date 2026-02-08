@@ -1,6 +1,7 @@
 The pseudo plugin can be configured to return fake data for any UUID.
 In the data logger configuration file, create a plugin element like the following:
 
+'''
 <plugin name="pseudo">
     <schedule>
         <period>30</period>
@@ -37,3 +38,4 @@ Inside the <plugin-config> element, list the values you would like to simulate a
         <min>700.0</min>
     </value>
 </plugin-config>
+'''
