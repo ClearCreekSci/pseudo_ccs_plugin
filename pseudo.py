@@ -2,8 +2,10 @@
 #
 #         
 
+import os
 import ccs_base
 import random
+import datetime
 import xml.etree.ElementTree as et
 
 NAME = 'pseudo'
@@ -12,6 +14,8 @@ TAG_MAX   = 'max'
 TAG_MIN   = 'min'
 TAG_UUID  = 'uuid'
 TAG_VALUE = 'value'
+
+PHOTO_SUFFIX = '.jpg'
 
 class Value(object):
 
@@ -69,8 +73,15 @@ class Pseudo(object):
     def get_current_values(self):
         rv = tuple()
         for v in self.values:
-            x = self.get_value(v.min,v.max)
-            rv += ((v.uuid,x),)
+            if v.uuid == ccs_base.CCS_PHOTOGRAPH_UUID:
+                ts = datetime.datetime.now(datetime.UTC)
+                path = '/opt/DataLogger/photos'
+                name = ts.strftime('%Y%m%d%I%M%S') + PHOTO_SUFFIX
+                full_path = os.path.join(path,name)
+                rv += ((v.uuid,full_path),)
+            else:
+                x = self.get_value(v.min,v.max)
+                rv += ((v.uuid,x),)
         return rv 
 
     def set_config(self,xml):
