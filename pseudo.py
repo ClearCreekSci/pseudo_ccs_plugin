@@ -1,6 +1,6 @@
 """
     pseudo.py
-    CCS datalogger plugin to simulate different sensors based on configuration 
+    CCS datalogger sensor module to simulate different sensors based on configuration 
 
     Copyright (C) 2026 Clear Creek Scientific
 
@@ -26,10 +26,12 @@ import xml.etree.ElementTree as et
 
 NAME = 'pseudo'
 
-TAG_MAX   = 'max'
-TAG_MIN   = 'min'
-TAG_UUID  = 'uuid'
-TAG_VALUE = 'value'
+TAG_INPUT  = 'input'
+TAG_MAX    = 'max'
+TAG_MIN    = 'min'
+TAG_OUTPUT = 'output'
+TAG_UUID   = 'uuid'
+TAG_VALUE  = 'value'
 
 PHOTO_SUFFIX = '.jpg'
 
@@ -46,6 +48,8 @@ class Pseudo(object):
     def __init__(self):
         self.log_callback = None
         self.values = list()
+        self.output_path = '/opt/DataLogger/data'
+        self.input_path = None
   
     def get_value(self,vmin,vmax):
         count = 0
@@ -68,7 +72,7 @@ class Pseudo(object):
         if None is not self.log_callback:
             self.log_callback(NAME,msg)
 
-    # The following functions implement the interface for a sensor plugin module
+    # The following functions implement the interface for a sensor module
     def get_label(self):
         return NAME 
 
@@ -91,10 +95,18 @@ class Pseudo(object):
         for v in self.values:
             if v.uuid == ccs_base.CCS_PHOTOGRAPH_UUID:
                 ts = datetime.datetime.now(datetime.UTC)
-                path = '/opt/DataLogger/photos'
                 name = ts.strftime('%Y%m%d%I%M%S') + PHOTO_SUFFIX
-                full_path = os.path.join(path,name)
-                rv += ((v.uuid,full_path),)
+                output_path = os.path.join(self.output_path,name)
+                if None is not self.input_path:
+                    with open(self.input_path,'rb') as fdin:
+                        with open(output_path,'wb') as fdout:
+                            while True:
+                                buf = fdin.read(8192)
+                                if buf is not None and len(buf) > 0:
+                                    fdout.write(buf)
+                                else:
+                                    break;
+                rv += ((v.uuid,output_path),)
             else:
                 x = self.get_value(v.min,v.max)
                 rv += ((v.uuid,x),)
@@ -122,6 +134,12 @@ class Pseudo(object):
                     self.values.append(new_value)
                 else:
                     self.logmsg('Config value has no uuid')
+            input_node = root.find(TAG_INPUT)
+            if None is not input_node:
+                self.input_path = input_node.text.strip()
+            output_node = root.find(TAG_OUTPUT)
+            if None is not output_node:
+                self.output_path = output_node.text.strip()
         except Exception as ex:
             self.logmsg('Error parsing config: ' + str(ex))
 
